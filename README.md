@@ -1,6 +1,6 @@
 ![!Easy promail client](./logo.png)
 
-# Promtail Client
+# Promtail Client ![Continious Integration (Lint & Unit Test)](https://github.com/ic2hrmk/promtail/workflows/Continious%20Integration%20(Lint%20&%20Unit%20Test)/badge.svg)
 
 A native Golang client for [Grafana's Loki logging server](https://grafana.com/oss/loki/) (written with love and tests).
 
