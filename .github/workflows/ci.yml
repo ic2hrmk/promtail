@@ -1,4 +1,4 @@
-name: Continious Integration
+name: Continious Integration (Lint & Unit Test)
 on:
   push:
     branches:
@@ -24,3 +24,19 @@ jobs:
         run: |
           make install-linter
           make run-linter
+
+  test:
+    name: Unit testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
+
+      - name: Check out
+        uses: actions/checkout@v2
+
+      - name: Perform unit tests
+        run: |
+          make unit-test
