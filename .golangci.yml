@@ -1,0 +1,9 @@
+run:
+  tests: false
+
+linters:
+  enable-all: false
+  enable:
+  - gofmt
+  - megacheck
+  - govet

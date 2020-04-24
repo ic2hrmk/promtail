@@ -103,6 +103,10 @@ type promtailClient struct {
 	stopOnce    sync.Once
 }
 
+func (rcv *promtailClient) Ping() (*PongResponse, error) {
+	return rcv.exchanger.Ping()
+}
+
 func (rcv *promtailClient) Logf(level Level, format string, args ...interface{}) {
 	rcv.LogfWithLabels(level, nil, format, args...)
 }
@@ -187,7 +191,7 @@ exchangeLoop:
 			}
 
 		// On send timeout
-		case _, _ = <-batchTimer.C:
+		case <-batchTimer.C:
 			{
 				if batch.countEntries() > 0 {
 					err = rcv.exchanger.Push(batch.getStreams())
@@ -202,7 +206,7 @@ exchangeLoop:
 			}
 
 		// On client stop
-		case _, _ = <-rcv.stopSignal:
+		case <-rcv.stopSignal:
 			{
 				if batch.countEntries() > 0 {
 					err = rcv.exchanger.Push(batch.getStreams())
@@ -240,7 +244,7 @@ func (rcv *logStreamBatch) add(entry packedLogEntry) {
 
 	// For both use cases (custom labels and unknown log level we would add entry in a separate stream)
 	if len(entry.labels) > 0 || cachedIndex < 0 {
-		dedicatedStream := NewLeveledStream(entry.level, rcv.predefinedLabels, entry.labels)
+		dedicatedStream := newLeveledStream(entry.level, rcv.predefinedLabels, entry.labels)
 		dedicatedStream.Entries = []*LogEntry{entry.logEntry}
 		rcv.streams = append(rcv.streams, dedicatedStream)
 	} else {
@@ -253,12 +257,12 @@ func (rcv *logStreamBatch) add(entry packedLogEntry) {
 func (rcv *logStreamBatch) reset() {
 	rcv.size = 0
 	rcv.streams = make([]*LogStream, len(rcv._getCachedLevels()))
-	rcv.streams[rcv._getLevelIndex(Debug)] = NewLeveledStream(Debug, rcv.predefinedLabels)
-	rcv.streams[rcv._getLevelIndex(Info)] = NewLeveledStream(Info, rcv.predefinedLabels)
-	rcv.streams[rcv._getLevelIndex(Warn)] = NewLeveledStream(Warn, rcv.predefinedLabels)
-	rcv.streams[rcv._getLevelIndex(Error)] = NewLeveledStream(Error, rcv.predefinedLabels)
-	rcv.streams[rcv._getLevelIndex(Panic)] = NewLeveledStream(Panic, rcv.predefinedLabels)
-	rcv.streams[rcv._getLevelIndex(Fatal)] = NewLeveledStream(Fatal, rcv.predefinedLabels)
+	rcv.streams[rcv._getLevelIndex(Debug)] = newLeveledStream(Debug, rcv.predefinedLabels)
+	rcv.streams[rcv._getLevelIndex(Info)] = newLeveledStream(Info, rcv.predefinedLabels)
+	rcv.streams[rcv._getLevelIndex(Warn)] = newLeveledStream(Warn, rcv.predefinedLabels)
+	rcv.streams[rcv._getLevelIndex(Error)] = newLeveledStream(Error, rcv.predefinedLabels)
+	rcv.streams[rcv._getLevelIndex(Panic)] = newLeveledStream(Panic, rcv.predefinedLabels)
+	rcv.streams[rcv._getLevelIndex(Fatal)] = newLeveledStream(Fatal, rcv.predefinedLabels)
 }
 
 func (rcv *logStreamBatch) getStreams() []*LogStream {
@@ -290,4 +294,14 @@ func (rcv *logStreamBatch) _getLevelIndex(level Level) int {
 
 func (rcv *logStreamBatch) _getCachedLevels() []Level {
 	return []Level{Debug, Info, Warn, Error, Panic, Fatal}
+}
+
+func newLeveledStream(level Level, predefinedLabels ...map[string]string) *LogStream {
+	return &LogStream{
+		Level: level,
+		Labels: copyAndMergeLabels(append(
+			predefinedLabels,
+			map[string]string{logLevelForcedLabel: level.String()},
+		)...),
+	}
 }

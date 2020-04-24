@@ -2,6 +2,7 @@ package promtail
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,18 +27,9 @@ const (
 	logLevelForcedLabel = "logLevel"
 )
 
-func NewLeveledStream(level Level, predefinedLabels ...map[string]string) *LogStream {
-	return &LogStream{
-		Level: level,
-		Labels: copyAndMergeLabels(append(
-			predefinedLabels,
-			map[string]string{logLevelForcedLabel: level.String()},
-		)...),
-	}
-}
-
 type StreamsExchanger interface {
 	Push(streams []*LogStream) error
+	Ping() (*PongResponse, error)
 }
 
 //
@@ -51,6 +43,10 @@ func NewJSONv1Exchanger(lokiAddress string) StreamsExchanger {
 		lokiAddress: lokiAddress,
 	}
 }
+
+const (
+	requestTimeout = 5 * time.Second
+)
 
 type lokiJsonV1Exchanger struct {
 	restClient  *http.Client
@@ -111,6 +107,33 @@ func (rcv *lokiJsonV1Exchanger) Push(streams []*LogStream) error {
 	return nil
 }
 
+func (rcv *lokiJsonV1Exchanger) Ping() (*PongResponse, error) {
+	var (
+		timeout, cancel  = context.WithTimeout(context.Background(), requestTimeout)
+		pingRequest, err = http.NewRequestWithContext(timeout, http.MethodGet, rcv.lokiAddress+"/ready", nil)
+	)
+	defer cancel()
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to build ping request: %s", err)
+	}
+
+	resp, err := rcv.restClient.Do(pingRequest)
+	if err != nil {
+		return nil, fmt.Errorf("pong is not received: %s", err)
+	}
+
+	defer func() { _ = resp.Body.Close() }()
+
+	pong := &PongResponse{}
+
+	if rcv.isSuccessHTTPCode(resp.StatusCode) {
+		pong.IsReady = true
+	}
+
+	return pong, nil
+}
+
 func (rcv *lokiJsonV1Exchanger) transformLogStreamsToDTO(streams []*LogStream) *lokiDTOJsonV1PushRequest {
 	if streams == nil {
 		return nil
@@ -149,4 +172,8 @@ func (rcv *lokiJsonV1Exchanger) transformLogStreamsToDTO(streams []*LogStream) *
 
 func (rcv *lokiJsonV1Exchanger) formatMessage(lvl Level, format string, args ...interface{}) string {
 	return lvl.String() + ": " + fmt.Sprintf(format, args...)
+}
+
+func (rcv *lokiJsonV1Exchanger) isSuccessHTTPCode(code int) bool {
+	return 199 < code && code < 300
 }

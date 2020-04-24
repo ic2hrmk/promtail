@@ -12,4 +12,10 @@ external-test:
 		--abort-on-container-exit \
 		--exit-code-from promtail
 
+install-linter:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.25.0
+
+run-linter:
+	golangci-lint run -v
+
 .PHONY: test unit-test external-test
