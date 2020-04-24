@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - development
+      - feature/PROMTAIL-3-CI-tune
   pull_request:
 
 jobs:
