@@ -9,6 +9,35 @@ import (
 	"time"
 )
 
+func TestJsonV1Client_Ping(t *testing.T) {
+	t.Log("Starting JSON V1 client test")
+	printUsedEnvVarNames(t,
+		TestLokiAddressEnv,
+	)
+	validateIsLokiReady(t)
+
+	var (
+		lokiAddress = TestLokiAddress
+	)
+
+	client, err := NewJSONv1Client(lokiAddress, nil)
+	if err != nil {
+		t.Fatalf("unable to initialize client: %s", err)
+	}
+
+	defer client.Close()
+
+	pong, err := client.Ping()
+
+	if err != nil {
+		t.Fatalf("unexpected error occured during ping: %s", err)
+	}
+
+	if !pong.IsReady {
+		t.Error("pong response says that Loki is not ready, but it is")
+	}
+}
+
 func TestJsonV1Client_Logf_External(t *testing.T) {
 	t.Log("Starting JSON V1 client test")
 	printUsedEnvVarNames(t,

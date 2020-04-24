@@ -4,6 +4,8 @@ services:
   loki:
     image: grafana/loki:1.4.0
     restart: on-failure
+    logging:
+      driver: none
     ports:
       - "3100:3100"
 

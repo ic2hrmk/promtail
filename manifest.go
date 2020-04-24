@@ -41,5 +41,11 @@ type Client interface {
 	Fatalf(format string, args ...interface{})
 	Panicf(format string, args ...interface{})
 
+	Ping() (*PongResponse, error)
+
 	Close()
+}
+
+type PongResponse struct {
+	IsReady bool
 }
