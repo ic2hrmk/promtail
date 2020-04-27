@@ -208,6 +208,7 @@ exchangeLoop:
 		// On client stop
 		case <-rcv.stopSignal:
 			{
+				batchTimer.Stop()
 				if batch.countEntries() > 0 {
 					err = rcv.exchanger.Push(batch.getStreams())
 					if err != nil {
@@ -215,9 +216,7 @@ exchangeLoop:
 					}
 				}
 
-				batchTimer.Stop()
 				rcv.stopAwaiter <- struct{}{}
-
 				break exchangeLoop
 			}
 
