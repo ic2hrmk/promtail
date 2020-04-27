@@ -78,3 +78,57 @@ func Test_LokiJSONv1Exchanger_transformLogStreamsToDTO(t *testing.T) {
 		})
 	}
 }
+
+func Test_LokiJSONv1Exchanger_format(t *testing.T) {
+	timestamp := time.Now()
+	type args struct {
+		level   Level
+		message string
+		args    []interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Message with no arguments",
+			args: args{
+				level:   Info,
+				message: "test with no arguments",
+				args:    nil,
+			},
+			want: "INFO: test with no arguments",
+		},
+		{
+			name: "Message with empty list of args",
+			args: args{
+				level:   Info,
+				message: "test with no arguments",
+				args:    []interface{}{},
+			},
+			want: "INFO: test with no arguments",
+		},
+		{
+			name: "Message with with single argument",
+			args: args{
+				level:   Info,
+				message: "test with arg [%d]",
+				args:    []interface{}{timestamp.Unix()},
+			},
+			want: fmt.Sprintf("INFO: test with arg [%d]", timestamp.Unix()),
+		},
+	}
+
+	exchanger := NewJSONv1Exchanger("loki").(*lokiJsonV1Exchanger)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := exchanger.formatMessage(Info, tt.args.message, tt.args.args...)
+			if got != tt.want {
+				t.Errorf("got unexpected format:\n"+
+					"want: >>>%s<<<\ngot:  >>>%s<<<", tt.want, got)
+			}
+		})
+	}
+}

@@ -129,27 +129,27 @@ func (rcv *promtailClient) LogfWithLabels(level Level, labels map[string]string,
 }
 
 func (rcv *promtailClient) Debugf(format string, args ...interface{}) {
-	rcv.Logf(Debug, format, args)
+	rcv.Logf(Debug, format, args...)
 }
 
 func (rcv *promtailClient) Infof(format string, args ...interface{}) {
-	rcv.Logf(Info, format, args)
+	rcv.Logf(Info, format, args...)
 }
 
 func (rcv *promtailClient) Warnf(format string, args ...interface{}) {
-	rcv.Logf(Warn, format, args)
+	rcv.Logf(Warn, format, args...)
 }
 
 func (rcv *promtailClient) Errorf(format string, args ...interface{}) {
-	rcv.Logf(Error, format, args)
+	rcv.Logf(Error, format, args...)
 }
 
 func (rcv *promtailClient) Fatalf(format string, args ...interface{}) {
-	rcv.Logf(Fatal, format, args)
+	rcv.Logf(Fatal, format, args...)
 }
 
 func (rcv *promtailClient) Panicf(format string, args ...interface{}) {
-	rcv.Logf(Panic, format, args)
+	rcv.Logf(Panic, format, args...)
 }
 
 func (rcv *promtailClient) Close() {

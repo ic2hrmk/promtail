@@ -7,7 +7,7 @@ unit-test:
 # Test inside Docker Compose environment
 external-test:
 	@docker-compose \
-		-f docker-compose.integration-test.yml up \
+		-f docker-compose.test.yml up \
 		--build \
 		--abort-on-container-exit \
 		--exit-code-from promtail

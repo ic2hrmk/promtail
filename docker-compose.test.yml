@@ -6,8 +6,6 @@ services:
     restart: on-failure
     logging:
       driver: none
-    ports:
-      - "3100:3100"
 
   promtail:
     build:
