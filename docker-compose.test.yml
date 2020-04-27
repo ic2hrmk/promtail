@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: promtail-test.Dockerfile
     env_file:
-      - docker-compose.integration-test.env
+      - docker-compose.test.env
     command: ["--tags", "external", "./..."]
     depends_on:
       - loki
