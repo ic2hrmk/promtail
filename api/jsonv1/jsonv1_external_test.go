@@ -1,26 +1,30 @@
-// +build external
+//go:build externaljsonv1
 
-package promtail
+package jsonv1_test
 
 import (
 	"fmt"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/ic2hrmk/promtail"
+	"github.com/ic2hrmk/promtail/api/jsonv1"
+	"github.com/ic2hrmk/promtail/internal/testsuite"
 )
 
 func TestJsonV1Client_Ping(t *testing.T) {
 	t.Log("Starting JSON V1 client test")
-	printUsedEnvVarNames(t,
-		TestLokiAddressEnv,
+	testsuite.PrintUsedEnvVarNames(t,
+		testsuite.TestLokiAddressEnv,
 	)
-	validateIsLokiReady(t)
+	testsuite.ValidateIsLokiReady(t)
 
 	var (
-		lokiAddress = TestLokiAddress
+		lokiAddress = testsuite.TestLokiAddress
 	)
 
-	client, err := NewJSONv1Client(lokiAddress, nil)
+	client, err := promtail.NewClient(jsonv1.NewJSONv1Exchanger(lokiAddress), nil)
 	if err != nil {
 		t.Fatalf("unable to initialize client: %s", err)
 	}
@@ -40,22 +44,22 @@ func TestJsonV1Client_Ping(t *testing.T) {
 
 func TestJsonV1Client_Logf_External(t *testing.T) {
 	t.Log("Starting JSON V1 client test")
-	printUsedEnvVarNames(t,
-		TestLokiAddressEnv,
-		TestRequestsNumberEnv,
+	testsuite.PrintUsedEnvVarNames(t,
+		testsuite.TestLokiAddressEnv,
+		testsuite.TestRequestsNumberEnv,
 	)
-	validateIsLokiReady(t)
+	testsuite.ValidateIsLokiReady(t)
 
 	var (
-		lokiAddress    = TestLokiAddress
-		requestsNumber = TestRequestsNumber
+		lokiAddress    = testsuite.TestLokiAddress
+		requestsNumber = testsuite.TestRequestsNumber
 
 		labels = map[string]string{
 			"testName": fmt.Sprintf("json-v1-client-%s", time.Now().Format(time.RFC3339)),
 		}
 	)
 
-	client, err := NewJSONv1Client(lokiAddress, labels)
+	client, err := promtail.NewClient(jsonv1.NewJSONv1Exchanger(lokiAddress), labels)
 	if err != nil {
 		t.Fatalf("unable to initialize client: %s", err)
 	}
@@ -77,25 +81,25 @@ func TestJsonV1Client_Logf_External(t *testing.T) {
 
 func TestJsonV1Client_LogfWithLabels_External(t *testing.T) {
 	t.Log("Starting JSON V1 client test")
-	printUsedEnvVarNames(t,
-		TestLokiAddressEnv,
-		TestRequestsNumberEnv,
+	testsuite.PrintUsedEnvVarNames(t,
+		testsuite.TestLokiAddressEnv,
+		testsuite.TestRequestsNumberEnv,
 	)
-	validateIsLokiReady(t)
+	testsuite.ValidateIsLokiReady(t)
 
 	var (
-		lokiAddress    = TestLokiAddress
-		requestsNumber = TestRequestsNumber
+		lokiAddress    = testsuite.TestLokiAddress
+		requestsNumber = testsuite.TestRequestsNumber
 
 		defaultLabels = map[string]string{
 			"testName": fmt.Sprintf("json-v1-client-%s", time.Now().Format(time.RFC3339)),
 		}
 		additionalLabels = map[string]string{
-			"instanceId": generateRandString(6),
+			"instanceId": testsuite.GenerateRandString(6),
 		}
 	)
 
-	client, err := NewJSONv1Client(lokiAddress, defaultLabels)
+	client, err := promtail.NewClient(jsonv1.NewJSONv1Exchanger(lokiAddress), defaultLabels)
 	if err != nil {
 		t.Fatalf("unable to initialize client: %s", err)
 	}
@@ -113,4 +117,17 @@ func TestJsonV1Client_LogfWithLabels_External(t *testing.T) {
 		time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 	}
 	t.Log("Done!")
+}
+
+func generateLogMessage() (promtail.Level, string) {
+	levels := []promtail.Level{
+		promtail.Debug,
+		promtail.Info,
+		promtail.Warn,
+		promtail.Error,
+		promtail.Fatal,
+		promtail.Panic,
+	}
+
+	return levels[rand.Intn(len(levels))], "it's a new log entry :)"
 }

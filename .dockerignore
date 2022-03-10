@@ -1,0 +1,12 @@
+**.yml
+**.png
+**.md
+**.env
+
+**Makefile
+**.Dockerfile
+
+.idea
+
+.gitignore
+.github

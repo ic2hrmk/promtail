@@ -1,4 +1,4 @@
-// +build unit
+//go:build unit
 
 package promtail
 
@@ -11,7 +11,7 @@ import (
 func TestPromtailClient_Constructor(t *testing.T) {
 	type args struct {
 		exchanger StreamsExchanger
-		options   []clientOption
+		options   []ClientOption
 	}
 	tests := []struct {
 		name    string
@@ -22,7 +22,7 @@ func TestPromtailClient_Constructor(t *testing.T) {
 		{
 			name: "JSON client with no options",
 			args: args{
-				exchanger: NewJSONv1Exchanger("loki:3100"),
+				exchanger: &MockedStreamsExchanger{},
 				options:   nil,
 			},
 			want: &promtailClient{
@@ -43,8 +43,8 @@ func TestPromtailClient_Constructor(t *testing.T) {
 		{
 			name: "JSON client with custom send batch size and batch timeout",
 			args: args{
-				exchanger: NewJSONv1Exchanger("loki:3100"),
-				options: []clientOption{
+				exchanger: &MockedStreamsExchanger{},
+				options: []ClientOption{
 					WithSendBatchTimeout(100 * time.Second),
 					WithSendBatchSize(100),
 				},
@@ -167,4 +167,27 @@ func TestPromtailClient_Batch_Scenario(t *testing.T) {
 		t.Fatalf("incorrect number of precached streams in re-initialized batch, want = %d, got  = %d",
 			len(batch._getCachedLevels()), len(batch.getStreams()))
 	}
+}
+
+type MockedStreamsExchanger struct{}
+
+func (rcv *MockedStreamsExchanger) Push(streams []*LogStream) error {
+	return nil
+}
+
+func (rcv *MockedStreamsExchanger) Ping() (*PongResponse, error) {
+	return &PongResponse{IsReady: true}, nil
+}
+
+func generateLogMessage() (Level, string) {
+	levels := []Level{
+		Debug,
+		Info,
+		Warn,
+		Error,
+		Fatal,
+		Panic,
+	}
+
+	return levels[rand.Intn(len(levels))], "it's a new log entry :)"
 }

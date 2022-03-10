@@ -9,10 +9,10 @@ services:
 
   promtail:
     build:
-      context: .
+      context: ../../
       dockerfile: promtail-test.Dockerfile
     env_file:
       - docker-compose.test.env
-    command: ["--tags", "external", "./..."]
+    command: ["go", "test", "-v", "--tags", "externaljsonv1", "./..."]
     depends_on:
       - loki

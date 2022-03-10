@@ -1,6 +1,6 @@
-package promtail
+package internal
 
-func copyLabels(src map[string]string) map[string]string {
+func CopyLabels(src map[string]string) map[string]string {
 	dst := make(map[string]string, len(src))
 	for i := range src {
 		dst[i] = src[i]
@@ -8,7 +8,7 @@ func copyLabels(src map[string]string) map[string]string {
 	return dst
 }
 
-func copyAndMergeLabels(srcs ...map[string]string) map[string]string {
+func CopyAndMergeLabels(srcs ...map[string]string) map[string]string {
 	//
 	// We do assume, that gathering map's sizes in a single loop is faster
 	// then additional allocations in loop fot the target map

@@ -1,4 +1,4 @@
-package promtail
+package testsuite
 
 import (
 	"fmt"
@@ -36,8 +36,8 @@ func init() {
 	//
 	// Resolve configurations
 	//
-	TestLokiAddress = getEnvStringWithFallback(TestLokiAddressEnv, TestLokiAddressFallback)
-	TestRequestsNumber, err = getEnvIntWithFallback(TestRequestsNumberEnv, TestRequestsNumberFallback)
+	TestLokiAddress = GetEnvStringWithFallback(TestLokiAddressEnv, TestLokiAddressFallback)
+	TestRequestsNumber, err = GetEnvIntWithFallback(TestRequestsNumberEnv, TestRequestsNumberFallback)
 	if err != nil {
 		log.Fatalf("env. var. [%s] required to be integer value", TestRequestsNumberEnv)
 	}
@@ -51,14 +51,14 @@ func init() {
 	log.Print()
 }
 
-func validateIsLokiReady(t *testing.T) {
-	resp, err := http.Get(fmt.Sprintf("http://%s/ready", TestLokiAddress))
+func ValidateIsLokiReady(t *testing.T) {
+	resp, err := http.Get(fmt.Sprintf("%s/ready", TestLokiAddress))
 	if err != nil {
 		t.Fatalf("unable to connect to Loki server, %s", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if !(199 < resp.StatusCode && resp.StatusCode < 300) {
+	if !(http.StatusOK <= resp.StatusCode && resp.StatusCode < http.StatusBadRequest) {
 		responseMessage, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			defer t.Errorf("also, failed to read Loki's response message :(")
@@ -68,27 +68,14 @@ func validateIsLokiReady(t *testing.T) {
 	}
 }
 
-func printUsedEnvVarNames(t *testing.T, envVars ...string) {
+func PrintUsedEnvVarNames(t *testing.T, envVars ...string) {
 	t.Log("using configurations from env variables:")
 	for i := range envVars {
 		t.Logf(" - %s", envVars[i])
 	}
 }
 
-func generateLogMessage() (Level, string) {
-	levels := []Level{
-		Debug,
-		Info,
-		Warn,
-		Error,
-		Fatal,
-		Panic,
-	}
-
-	return levels[rand.Intn(len(levels))], "it's a new log entry :)"
-}
-
-func generateRandString(length uint) string {
+func GenerateRandString(length uint) string {
 	var (
 		letterBytes = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		b           = make([]byte, length)
@@ -99,14 +86,14 @@ func generateRandString(length uint) string {
 	return string(b)
 }
 
-func getEnvStringWithFallback(varName, fallbackValue string) string {
+func GetEnvStringWithFallback(varName, fallbackValue string) string {
 	if resolved := os.Getenv(varName); resolved != "" {
 		return resolved
 	}
 	return fallbackValue
 }
 
-func getEnvIntWithFallback(varName string, fallbackValue int) (int, error) {
+func GetEnvIntWithFallback(varName string, fallbackValue int) (int, error) {
 	if resolved := os.Getenv(varName); resolved != "" {
 		return strconv.Atoi(resolved)
 	}

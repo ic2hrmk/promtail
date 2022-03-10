@@ -1,4 +1,4 @@
-package promtail
+package jsonv1
 
 import (
 	"bytes"
@@ -9,35 +9,16 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/ic2hrmk/promtail"
 )
 
-type LogStream struct {
-	Level   Level
-	Labels  map[string]string
-	Entries []*LogEntry
-}
-
-type LogEntry struct {
-	Timestamp time.Time
-	Format    string
-	Args      []interface{}
-}
-
-const (
-	logLevelForcedLabel = "logLevel"
-)
-
-type StreamsExchanger interface {
-	Push(streams []*LogStream) error
-	Ping() (*PongResponse, error)
-}
-
 //
-// Creates a client with direct send logic (nor batch neither queue) capable to
-// exchange with Loki v1 API via JSON
-//	Read more at: https://github.com/grafana/loki/blob/master/docs/api.md#post-lokiapiv1push
+// NewJSONv1Exchanger Creates a client with direct send logic (nor batch neither queue)
+// capable to exchange with Loki v1 API via JSON
+//	Read more at: https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push
 //
-func NewJSONv1Exchanger(lokiAddress string) StreamsExchanger {
+func NewJSONv1Exchanger(lokiAddress string) promtail.StreamsExchanger {
 	return &lokiJsonV1Exchanger{
 		restClient:  &http.Client{},
 		lokiAddress: lokiAddress,
@@ -81,7 +62,7 @@ type (
 	}
 )
 
-func (rcv *lokiJsonV1Exchanger) Push(streams []*LogStream) error {
+func (rcv *lokiJsonV1Exchanger) Push(streams []*promtail.LogStream) error {
 	var (
 		pushMessage       = rcv.transformLogStreamsToDTO(streams)
 		rawPushMessage, _ = json.Marshal(pushMessage)
@@ -107,7 +88,7 @@ func (rcv *lokiJsonV1Exchanger) Push(streams []*LogStream) error {
 	return nil
 }
 
-func (rcv *lokiJsonV1Exchanger) Ping() (*PongResponse, error) {
+func (rcv *lokiJsonV1Exchanger) Ping() (*promtail.PongResponse, error) {
 	var (
 		timeout, cancel  = context.WithTimeout(context.Background(), requestTimeout)
 		pingRequest, err = http.NewRequestWithContext(timeout, http.MethodGet, rcv.lokiAddress+"/ready", nil)
@@ -125,7 +106,7 @@ func (rcv *lokiJsonV1Exchanger) Ping() (*PongResponse, error) {
 
 	defer func() { _ = resp.Body.Close() }()
 
-	pong := &PongResponse{}
+	pong := &promtail.PongResponse{}
 
 	if rcv.isSuccessHTTPCode(resp.StatusCode) {
 		pong.IsReady = true
@@ -134,7 +115,7 @@ func (rcv *lokiJsonV1Exchanger) Ping() (*PongResponse, error) {
 	return pong, nil
 }
 
-func (rcv *lokiJsonV1Exchanger) transformLogStreamsToDTO(streams []*LogStream) *lokiDTOJsonV1PushRequest {
+func (rcv *lokiJsonV1Exchanger) transformLogStreamsToDTO(streams []*promtail.LogStream) *lokiDTOJsonV1PushRequest {
 	if streams == nil {
 		return nil
 	}
@@ -170,7 +151,7 @@ func (rcv *lokiJsonV1Exchanger) transformLogStreamsToDTO(streams []*LogStream) *
 	return pushRequest
 }
 
-func (rcv *lokiJsonV1Exchanger) formatMessage(lvl Level, format string, args ...interface{}) string {
+func (rcv *lokiJsonV1Exchanger) formatMessage(lvl promtail.Level, format string, args ...interface{}) string {
 	return lvl.String() + ": " + fmt.Sprintf(format, args...)
 }
 

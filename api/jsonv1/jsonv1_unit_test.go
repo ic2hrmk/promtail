@@ -1,6 +1,6 @@
-// +build unit
+//go:build unit
 
-package promtail
+package jsonv1
 
 import (
 	"encoding/json"
@@ -9,12 +9,15 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ic2hrmk/promtail"
+	"github.com/ic2hrmk/promtail/internal"
 )
 
 func Test_LokiJSONv1Exchanger_transformLogStreamsToDTO(t *testing.T) {
 	timestamp := time.Now()
 	type args struct {
-		streams []*LogStream
+		streams []*promtail.LogStream
 	}
 	tests := []struct {
 		name string
@@ -24,13 +27,13 @@ func Test_LokiJSONv1Exchanger_transformLogStreamsToDTO(t *testing.T) {
 		{
 			name: "Regular transformation",
 			args: args{
-				streams: []*LogStream{
+				streams: []*promtail.LogStream{
 					{
-						Level: Error,
+						Level: promtail.Error,
 						Labels: map[string]string{
 							"instanceId": "instance-a1",
 						},
-						Entries: []*LogEntry{
+						Entries: []*promtail.LogEntry{
 							{
 								Timestamp: timestamp,
 								Format:    "regular error message, nothing to do with [%s] :)",
@@ -43,14 +46,14 @@ func Test_LokiJSONv1Exchanger_transformLogStreamsToDTO(t *testing.T) {
 			want: &lokiDTOJsonV1PushRequest{
 				Streams: []*lokiDTOJsonV1Stream{
 					{
-						Stream: copyAndMergeLabels(
+						Stream: internal.CopyAndMergeLabels(
 							map[string]string{
 								"instanceId": "instance-a1",
 							},
 						),
 						Values: [][2]string{{
 							strconv.FormatInt(timestamp.UnixNano(), 10),
-							Error.String() + ": " +
+							promtail.Error.String() + ": " +
 								fmt.Sprintf("regular error message, nothing to do with [%s] :)", []interface{}{"awesome argument"}...),
 						}},
 					},
@@ -82,7 +85,7 @@ func Test_LokiJSONv1Exchanger_transformLogStreamsToDTO(t *testing.T) {
 func Test_LokiJSONv1Exchanger_format(t *testing.T) {
 	timestamp := time.Now()
 	type args struct {
-		level   Level
+		level   promtail.Level
 		message string
 		args    []interface{}
 	}
@@ -94,7 +97,7 @@ func Test_LokiJSONv1Exchanger_format(t *testing.T) {
 		{
 			name: "Message with no arguments",
 			args: args{
-				level:   Info,
+				level:   promtail.Info,
 				message: "test with no arguments",
 				args:    nil,
 			},
@@ -103,7 +106,7 @@ func Test_LokiJSONv1Exchanger_format(t *testing.T) {
 		{
 			name: "Message with empty list of args",
 			args: args{
-				level:   Info,
+				level:   promtail.Info,
 				message: "test with no arguments",
 				args:    []interface{}{},
 			},
@@ -112,7 +115,7 @@ func Test_LokiJSONv1Exchanger_format(t *testing.T) {
 		{
 			name: "Message with with single argument",
 			args: args{
-				level:   Info,
+				level:   promtail.Info,
 				message: "test with arg [%d]",
 				args:    []interface{}{timestamp.Unix()},
 			},
@@ -124,7 +127,7 @@ func Test_LokiJSONv1Exchanger_format(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := exchanger.formatMessage(Info, tt.args.message, tt.args.args...)
+			got := exchanger.formatMessage(promtail.Info, tt.args.message, tt.args.args...)
 			if got != tt.want {
 				t.Errorf("got unexpected format:\n"+
 					"want: >>>%s<<<\ngot:  >>>%s<<<", tt.want, got)

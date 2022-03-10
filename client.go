@@ -3,9 +3,10 @@ package promtail
 import (
 	"errors"
 	"log"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/ic2hrmk/promtail/internal"
 )
 
 const (
@@ -15,10 +16,10 @@ const (
 )
 
 //
-// Creates a Promtail client with a custom Streams exchanger
+// NewClient Creates a Promtail client with a custom Streams exchanger
 //	NOTE: options are applied before client start
 //
-func NewClient(exchanger StreamsExchanger, labels map[string]string, options ...clientOption) (Client, error) {
+func NewClient(exchanger StreamsExchanger, labels map[string]string, options ...ClientOption) (Client, error) {
 	if exchanger == nil {
 		return nil, errors.New("exchanger is nil, no operations could be performed")
 	}
@@ -44,27 +45,18 @@ func NewClient(exchanger StreamsExchanger, labels map[string]string, options ...
 		options[i](c)
 	}
 
-	go c.exchange(copyLabels(labels))
+	go c.exchange(internal.CopyLabels(labels))
 
 	return c, nil
 }
 
-func NewJSONv1Client(lokiAddress string, defaultLabels map[string]string, options ...clientOption) (Client, error) {
-	if !(strings.HasPrefix(lokiAddress, "http://") ||
-		strings.HasPrefix(lokiAddress, "https://")) {
-		lokiAddress = "http://" + lokiAddress
-	}
-
-	return NewClient(NewJSONv1Exchanger(lokiAddress), defaultLabels, options...)
-}
-
-func WithSendBatchSize(batchSize uint) clientOption {
+func WithSendBatchSize(batchSize uint) ClientOption {
 	return func(c *promtailClient) {
 		c.sendBatchSize = batchSize
 	}
 }
 
-func WithSendBatchTimeout(sendTimeout time.Duration) clientOption {
+func WithSendBatchTimeout(sendTimeout time.Duration) ClientOption {
 	return func(c *promtailClient) {
 		if sendTimeout <= 0 {
 			return
@@ -74,13 +66,13 @@ func WithSendBatchTimeout(sendTimeout time.Duration) clientOption {
 	}
 }
 
-func WithErrorCallback(errorHandler func(err error)) clientOption {
+func WithErrorCallback(errorHandler func(err error)) ClientOption {
 	return func(c *promtailClient) {
 		c.errorHandler = errorHandler
 	}
 }
 
-type clientOption func(c *promtailClient)
+type ClientOption func(c *promtailClient)
 
 type packedLogEntry struct {
 	level    Level
@@ -118,7 +110,7 @@ func (rcv *promtailClient) LogfWithLabels(level Level, labels map[string]string,
 	}
 
 	rcv.queue <- packedLogEntry{
-		labels: copyLabels(labels),
+		labels: internal.CopyLabels(labels),
 		level:  level,
 		logEntry: &LogEntry{
 			Timestamp: time.Now(),
@@ -231,7 +223,7 @@ type logStreamBatch struct {
 }
 
 func newBatch(predefinedLabels map[string]string) *logStreamBatch {
-	rcv := &logStreamBatch{predefinedLabels: copyLabels(predefinedLabels)}
+	rcv := &logStreamBatch{predefinedLabels: internal.CopyLabels(predefinedLabels)}
 	rcv.reset()
 	return rcv
 }
@@ -298,7 +290,7 @@ func (rcv *logStreamBatch) _getCachedLevels() []Level {
 func newLeveledStream(level Level, predefinedLabels ...map[string]string) *LogStream {
 	return &LogStream{
 		Level: level,
-		Labels: copyAndMergeLabels(append(
+		Labels: internal.CopyAndMergeLabels(append(
 			predefinedLabels,
 			map[string]string{logLevelForcedLabel: level.String()},
 		)...),
