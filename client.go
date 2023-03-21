@@ -80,6 +80,14 @@ func WithErrorCallback(errorHandler func(err error)) clientOption {
 	}
 }
 
+func WithBasicAuth(username, password string) clientOption {
+	return func(c *promtailClient) {
+		if basicAuthExchanger, ok := c.exchanger.(BasicAuthExchanger); ok {
+			basicAuthExchanger.SetBasicAuth(username, password)
+		}
+	}
+}
+
 type clientOption func(c *promtailClient)
 
 type packedLogEntry struct {

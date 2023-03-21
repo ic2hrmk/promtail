@@ -32,6 +32,10 @@ type StreamsExchanger interface {
 	Ping() (*PongResponse, error)
 }
 
+type BasicAuthExchanger interface {
+	SetBasicAuth(username, password string)
+}
+
 //
 // Creates a client with direct send logic (nor batch neither queue) capable to
 // exchange with Loki v1 API via JSON
@@ -51,6 +55,8 @@ const (
 type lokiJsonV1Exchanger struct {
 	restClient  *http.Client
 	lokiAddress string
+	username    string
+	password    string
 }
 
 //
@@ -87,11 +93,22 @@ func (rcv *lokiJsonV1Exchanger) Push(streams []*LogStream) error {
 		rawPushMessage, _ = json.Marshal(pushMessage)
 	)
 
-	resp, err := rcv.restClient.Post(
+	req, err := http.NewRequest(
+		"POST",
 		rcv.lokiAddress+"/loki/api/v1/push",
-		"application/json",
 		bytes.NewBuffer(rawPushMessage),
 	)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %s", err)
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	if rcv.username != "" && rcv.password != "" {
+		req.SetBasicAuth(rcv.username, rcv.password)
+	}
+
+	resp, err := rcv.restClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send push message: %s", err)
 	}
@@ -168,6 +185,11 @@ func (rcv *lokiJsonV1Exchanger) transformLogStreamsToDTO(streams []*LogStream) *
 	}
 
 	return pushRequest
+}
+
+func (rcv *lokiJsonV1Exchanger) SetBasicAuth(username, password string) {
+	rcv.username = username
+	rcv.password = password
 }
 
 func (rcv *lokiJsonV1Exchanger) formatMessage(lvl Level, format string, args ...interface{}) string {
